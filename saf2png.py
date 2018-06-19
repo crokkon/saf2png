@@ -181,6 +181,7 @@ class HistWriter(object):
 
 if __name__ == "__main__":
     import argparse
+    import os
     parser = argparse.ArgumentParser()
     helptext = 'One or more SAF files. Separate multiple files with spaces'
     parser.add_argument('-f', '--files', type=str, nargs="+",
@@ -193,7 +194,10 @@ if __name__ == "__main__":
         reader = SAFReader(saffile)
         # iterate over all histograms contained in the SAF file
         for hist in reader.histograms:
+            # assemble output file name
+            basename, ext = os.path.splitext(saffile)
+            outfile = "%s.%s.png" % (basename, hist['name'])
             # write histogram to file
             writer = HistWriter(hist)
-            filename = writer.create_png()
-            print("%s: Created %s" % (saffile, filename))
+            writer.create_png(filename=outfile)
+            print("Created %s" % (outfile))
