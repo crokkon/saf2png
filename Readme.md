@@ -2,7 +2,7 @@
 
 Plot MadAnalysis5 SAF histogram files as PNGs with matplotlib.
 
-### Usage as standalone tool with deafault settings
+### Usage as standalone tool with default settings
 
 ```
 usage: saf2png.py [-h] -f FILES [FILES ...]
