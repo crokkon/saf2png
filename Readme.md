@@ -14,7 +14,7 @@ optional arguments:
                         spaces
 ```
 
-PNGs are written into the current working directory. The file name is based on the name in the `<Description>` tag in the SAF file.
+PNGs are written into the same directory as the SAF files are. The PNG output file names are based on the name in the SAF file name and the histogram names in the `<Description>` tags in the SAF file.
 
 Example output:
 ![example_histos.ptj1.png](https://cdn.steemitimages.com/DQmT4dGoi3eesgPddvvwysYmCcPqBE14NR1g4M7e4FiW9Fz/example_histos.ptj1.png)
