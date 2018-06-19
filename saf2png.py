@@ -107,24 +107,25 @@ class SAFReader(object):
         if type(safdata) != list:
             raise ValueError("Cannot parse SAF Data")
         values = []
-        values_neg = []
         for entry in safdata:
-            values.append(float(entry[0]))
-            values_neg.append(float(entry[1]))
-        return {'values': values, 'values_neg': values_neg}
+            values.append(float(entry[0]) - float(entry[1]))
+        return {'values': values}
 
 
 class HistWriter(object):
 
-    def __init__(self, hist):
+    def __init__(self, hist, figsize=None, bar_args={}):
         """ load histogram data for plotting
 
             :param dict hist: histogram data as created by the SAFReader class
+            :param tuple figsize: (optional) target PNG dimensions as tuple
+                (width, heigh) in inch. Defaults to (12, 6).
+            :param dict bar_args: (optional) arguments to ``bar``, e.g. colors,
+                styles, etc.
         """
         if type(hist) != dict:
             raise ValueError("Invalid input data: hist needs to be a dict")
-        required_keys = set(['xmax', 'xmin', 'values', 'values_neg',
-                             'nbins', 'name'])
+        required_keys = set(['xmax', 'xmin', 'values', 'nbins', 'name'])
         if required_keys & set(hist.keys()) != required_keys:
             missing = required_keys - set(hist.keys())
             raise ValueError("Invalid input data: hist dict is missing the "
@@ -133,52 +134,47 @@ class HistWriter(object):
         self.value_range = hist['xmax'] - hist['xmin']
         self.xticks = [hist['xmin'] + i * self.value_range /
                        hist['nbins'] for i in range(hist['nbins'])]
+        figsize = figsize or (12, 6)
+        width = self.value_range / self.hist['nbins']
 
-    def create_png(self, filename=None, figsize=None, title=None,
-                   xlabel=None, ylabel=None, bar_args={}, grid=True,
+        self.fig, self.ax = plt.subplots(figsize=figsize)
+        self.bar = self.ax.bar(self.xticks, self.hist['values'][1:-1],
+                               width=width, align="edge", **bar_args)
+
+
+    def create_png(self, filename=None, title=None, xlabel=None,
+                   ylabel=None, grid=True,
                    show_stats=True):
         """ write the histgram to a PNG file and return the file name.
 
             :param str filename: (optional) target output file name. Defaults
                 to "[histogram_name].png".
-            :param tuple figsize: (optional) target PNG dimensions as tuple
-                (width, heigh) in inch. Defaults to (12, 6).
             :param str title: (optional) set histogram title. Defaults to the
                 name contained in the data if not set here.
             :param str xlabel: (optional) label for the x-axis. Default: None
             :param str ylabel: (optional) label for the y-axis. Default: None
-            :param dict bar_args: (optional) arguments to ``bar``, e.g. colors,
-                styles, etc.
             :param bool grid: (optional) include a grid. Default: True
             :param bool show_stats: (optional) include a text box with
                 statistics. Default: True
 
         """
-        figsize = figsize or (12, 6)
         title = title or self.hist['name']
-        filename = filename or "%s.png" % (self.hist['name'])
-
-        width = self.value_range / self.hist['nbins'] / 2
-        plt.figure(figsize=figsize)
-        pos_x = [x - width/2 for x in self.xticks]
-        plt.bar(pos_x, self.hist['values'][1:-1], width=width,
-                align="edge", label="positive weighted entries",
-                **bar_args)
-        neg_x = [x + width/2 for x in self.xticks]
-        plt.bar(neg_x, self.hist['values_neg'][1:-1], width=width,
-                align="edge", label="negative weighted entries",
-                **bar_args)
-        plt.legend()
+        self.filename = filename or "%s.png" % (self.hist['name'])
         if grid:
-            plt.grid()
+            self.ax.grid()
         if title is not None:
-            plt.title(title)
+            self.ax.set_title(title)
         if xlabel is not None:
-            plt.xlabel(xlabel)
+            self.ax.set_xlabel(xlabel)
         if ylabel is not None:
-            plt.ylabel(ylabel)
+            self.ax.set_ylabel(ylabel)
         if show_stats:
             props = dict(boxstyle='round', facecolor='white', alpha=0.5)
+            text = r'$overflow=%e$' % (self.hist['values'][-1]) + "\n" + \
+                   r'$underflow=%e$' % (self.hist['values'][0])
+            self.ax.text(1.05, 1, text, transform=plt.gca().transAxes,
+                         fontsize=10, verticalalignment='top',
+                         horizontalalignment='left', bbox=props)
             text = "Positive weighted entries:\n" + \
                    r'$n_{evt}=%d$' % (self.hist['nevents']) + "\n" + \
                    r'$\sum{w_{evt}}=%e$' % (self.hist['nevents_w']) + "\n" + \
@@ -186,13 +182,11 @@ class HistWriter(object):
                    r'$\sum{w}=%e$' % (self.hist['sum_w']) + "\n" + \
                    r'$\sum{w^{2}}=%e$' % (self.hist['sum_ww']) + "\n" + \
                    r'$\sum{xw}=%e$' % (self.hist['sum_xw']) + "\n" + \
-                   r'$\sum{x^{2}w}=%e$' % (self.hist['sum_xxw']) + "\n" + \
-                   r'$overflow=%e$' % (self.hist['values'][-1]) + "\n" + \
-                   r'$underflow=%e$' % (self.hist['values'][0])
-            plt.gca().text(1.05, 1, text,
-                           transform=plt.gca().transAxes, fontsize=10,
-                           verticalalignment='top',
-                           horizontalalignment='left', bbox=props)
+                   r'$\sum{x^{2}w}=%e$' % (self.hist['sum_xxw'])
+            self.ax.text(1.05, 0.85, text,
+                         transform=plt.gca().transAxes, fontsize=10,
+                         verticalalignment='top',
+                         horizontalalignment='left', bbox=props)
             text = "Negative weighted entries:\n" + \
                    r'$n_{evt}=%d$' % (self.hist['nevents_neg']) + "\n" + \
                    r'$\sum{w_{evt}}=%e$' % (self.hist['nevents_w_neg']) + "\n" + \
@@ -200,17 +194,15 @@ class HistWriter(object):
                    r'$\sum{w}=%e$' % (self.hist['sum_w_neg']) + "\n" + \
                    r'$\sum{w^{2}}=%e$' % (self.hist['sum_ww_neg']) + "\n" + \
                    r'$\sum{xw}=%e$' % (self.hist['sum_xw_neg']) + "\n" + \
-                   r'$\sum{x^{2}w}=%e$' % (self.hist['sum_xxw_neg']) + "\n" + \
-                   r'$overflow=%e$' % (self.hist['values_neg'][-1]) + "\n" + \
-                   r'$underflow=%e$' % (self.hist['values_neg'][0])
-            plt.gca().text(1.05, 0.5, text,
+                   r'$\sum{x^{2}w}=%e$' % (self.hist['sum_xxw_neg'])
+            self.ax.text(1.05, 0.4, text,
                            transform=plt.gca().transAxes, fontsize=10,
                            verticalalignment='top',
                            horizontalalignment='left', bbox=props)
-            plt.subplots_adjust(right=0.75)
+            self.fig.subplots_adjust(right=0.75)
 
-        plt.savefig(filename)
-        return filename
+        self.fig.savefig(filename)
+        return self.filename
 
 
 if __name__ == "__main__":
@@ -231,7 +223,12 @@ if __name__ == "__main__":
             # assemble output file name
             basename, ext = os.path.splitext(saffile)
             outfile = "%s.%s.png" % (basename, hist['name'])
-            # write histogram to file
             writer = HistWriter(hist)
+            # write histogram to file with default settings
             writer.create_png(filename=outfile)
+
+            # alternatively: customize the histogram
+            # writer.ax.set_title("my title")
+            # writer.ax.set_ylim([0,1])
+            # writer.fig.savefig(outfile)
             print("Created %s" % (outfile))
