@@ -94,10 +94,10 @@ class SAFReader(object):
         return {'nevents': nevents, 'nevents_err': nevents_err,
                 'nevents_w': nevents_w, 'nevents_w_err':
                 nevents_w_err, 'nentries': nentries, 'nentries_err':
-                nentries_err, 'sum_w': sumw, 'sumw_err': sumw_err,
-                'sum_ww': sumww, 'sumww_err': sumww_err, 'sum_xw':
-                sumxw, 'sumxw_err': sumxw_err, 'sum_xxw': sumxxw,
-                'sumxxw_err': sumxxw_err}
+                nentries_err, 'sum_w': sumw, 'sum_w_err': sumw_err,
+                'sum_ww': sumww, 'sum_ww_err': sumww_err, 'sum_xw':
+                sumxw, 'sum_xw_err': sumxw_err, 'sum_xxw': sumxxw,
+                'sum_xxw_err': sumxxw_err}
 
     def _parse_data(self, safdata):
         """ parse the <Data> tag of the SAF data
@@ -136,7 +136,7 @@ class HistWriter(object):
 
     def create_png(self, filename=None, figsize=None, title=None,
                    xlabel=None, ylabel=None, bar_args={}, grid=True,
-                   optstat=True, show_yerrs=False):
+                   show_stats=True, show_yerrs=True):
         """ write the histgram to a PNG file and return the file name.
 
             :param str filename: (optional) target output file name. Defaults
@@ -150,10 +150,10 @@ class HistWriter(object):
             :param dict bar_args: (optional) arguments to ``har``, e.g. colors,
                 styles, etc.
             :param bool grid: (optional) include a grid. Default: enabled
-            :param bool opstat: (optional) include a text box with statistics.
-                Default: enabled
+            :param bool show_stats: (optional) include a text box with
+                statistics. Default: True
             :param bool show_yerrs: (optional) Draw error bars in y direction.
-                Default: False
+                Default: True
 
         """
         figsize = figsize or (12, 6)
@@ -161,7 +161,7 @@ class HistWriter(object):
         filename = filename or "%s.png" % (self.hist['name'])
         yerrs = None
         if show_yerrs:
-            yerrs = self.hist['errors']
+            yerrs = self.hist['errors'][1:-1]
 
         width = self.value_range / self.hist['nbins']
         plt.figure(figsize=figsize)
@@ -175,6 +175,26 @@ class HistWriter(object):
             plt.xlabel(xlabel)
         if ylabel is not None:
             plt.ylabel(ylabel)
+        if show_stats:
+            textstr = r'$n_{events}=%d$' % (self.hist['nevents']) + "\n" + \
+                      r'$\frac{\sum{w}}{n_{events}}=%e \pm %e$' % \
+                      (self.hist['nevents_w'], self.hist['nevents_w_err']) + \
+                      "\n" + "$n_{entries}=%d$\n" % (self.hist['nentries']) + \
+                      r'$\frac{\sum{w}}{n_{entries}}=%e \pm %e$' % \
+                      (self.hist['sum_w'], self.hist['sum_w_err']) + "\n" + \
+                      r'$\frac{\sum{w^{2}}}{n_{entries}}=%e \pm %e$' % \
+                      (self.hist['sum_ww'], self.hist['sum_ww_err']) + "\n" + \
+                      r'$\frac{\sum{xw}}{n_{entries}}=%e \pm %e$' % \
+                      (self.hist['sum_xw'], self.hist['sum_xw_err']) + "\n" + \
+                      r'$\frac{\sum{x^{2}w}}{n_{entries}}=%e \pm %e$' % \
+                      (self.hist['sum_xxw'], self.hist['sum_xxw_err'])
+            props = dict(boxstyle='round', facecolor='white',
+                         alpha=0.5)
+            plt.gca().text(0.65, 0.99, textstr,
+                           transform=plt.gca().transAxes, fontsize=10,
+                           verticalalignment='top',
+                           horizontalalignment='left', bbox=props)
+
         plt.savefig(filename)
         return filename
 
