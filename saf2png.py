@@ -147,9 +147,9 @@ class HistWriter(object):
                 name contained in the data if not set here.
             :param str xlabel: (optional) label for the x-axis. Default: None
             :param str ylabel: (optional) label for the y-axis. Default: None
-            :param dict bar_args: (optional) arguments to ``har``, e.g. colors,
+            :param dict bar_args: (optional) arguments to ``bar``, e.g. colors,
                 styles, etc.
-            :param bool grid: (optional) include a grid. Default: enabled
+            :param bool grid: (optional) include a grid. Default: True
             :param bool show_stats: (optional) include a text box with
                 statistics. Default: True
 
@@ -178,34 +178,31 @@ class HistWriter(object):
         if ylabel is not None:
             plt.ylabel(ylabel)
         if show_stats:
+            props = dict(boxstyle='round', facecolor='white', alpha=0.5)
             text = "Positive weighted entries:\n" + \
-                   r'$n_{events}=%d$' % (self.hist['nevents']) + "\n" + \
-                   r'$\sum{w}=%e$' % (self.hist['nevents_w']) + "\n" + \
-                   r'$n_{entries}=%d$' % (self.hist['nentries']) + "\n" + \
+                   r'$n_{evt}=%d$' % (self.hist['nevents']) + "\n" + \
+                   r'$\sum{w_{evt}}=%e$' % (self.hist['nevents_w']) + "\n" + \
+                   r'$n_{entr}=%d$' % (self.hist['nentries']) + "\n" + \
                    r'$\sum{w}=%e$' % (self.hist['sum_w']) + "\n" + \
                    r'$\sum{w^{2}}=%e$' % (self.hist['sum_ww']) + "\n" + \
                    r'$\sum{xw}=%e$' % (self.hist['sum_xw']) + "\n" + \
                    r'$\sum{x^{2}w}=%e$' % (self.hist['sum_xxw']) + "\n" + \
                    r'$overflow=%e$' % (self.hist['values'][-1]) + "\n" + \
                    r'$underflow=%e$' % (self.hist['values'][0])
-            props = dict(boxstyle='round', facecolor='white',
-                         alpha=0.5)
             plt.gca().text(1.05, 1, text,
                            transform=plt.gca().transAxes, fontsize=10,
                            verticalalignment='top',
                            horizontalalignment='left', bbox=props)
             text = "Negative weighted entries:\n" + \
-                   r'$n_{events}=%d$' % (self.hist['nevents_neg']) + "\n" + \
-                   r'$\sum{w}=%e$' % (self.hist['nevents_w_neg']) + "\n" + \
-                   r'$n_{entries}=%d$' % (self.hist['nentries_neg']) + "\n" + \
+                   r'$n_{evt}=%d$' % (self.hist['nevents_neg']) + "\n" + \
+                   r'$\sum{w_{evt}}=%e$' % (self.hist['nevents_w_neg']) + "\n" + \
+                   r'$n_{entr}=%d$' % (self.hist['nentries_neg']) + "\n" + \
                    r'$\sum{w}=%e$' % (self.hist['sum_w_neg']) + "\n" + \
                    r'$\sum{w^{2}}=%e$' % (self.hist['sum_ww_neg']) + "\n" + \
                    r'$\sum{xw}=%e$' % (self.hist['sum_xw_neg']) + "\n" + \
                    r'$\sum{x^{2}w}=%e$' % (self.hist['sum_xxw_neg']) + "\n" + \
                    r'$overflow=%e$' % (self.hist['values_neg'][-1]) + "\n" + \
                    r'$underflow=%e$' % (self.hist['values_neg'][0])
-            props = dict(boxstyle='round', facecolor='white',
-                         alpha=0.5)
             plt.gca().text(1.05, 0.5, text,
                            transform=plt.gca().transAxes, fontsize=10,
                            verticalalignment='top',
