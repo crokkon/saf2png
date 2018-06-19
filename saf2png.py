@@ -78,26 +78,26 @@ class SAFReader(object):
         if type(safdata) != list or len(safdata) != 7:
             raise ValueError("Cannot parse SAF Statistics")
         nevents = int(safdata[0][0])
-        nevents_err = int(safdata[0][1])
+        nevents_neg = int(safdata[0][1])
         nevents_w = float(safdata[1][0])
-        nevents_w_err = float(safdata[1][1])
+        nevents_w_neg = float(safdata[1][1])
         nentries = int(safdata[2][0])
-        nentries_err = int(safdata[2][1])
+        nentries_neg = int(safdata[2][1])
         sumw = float(safdata[3][0])
-        sumw_err = float(safdata[3][1])
+        sumw_neg = float(safdata[3][1])
         sumww = float(safdata[4][0])
-        sumww_err = float(safdata[4][1])
+        sumww_neg = float(safdata[4][1])
         sumxw = float(safdata[5][0])
-        sumxw_err = float(safdata[5][1])
+        sumxw_neg = float(safdata[5][1])
         sumxxw = float(safdata[6][0])
-        sumxxw_err = float(safdata[6][1])
-        return {'nevents': nevents, 'nevents_err': nevents_err,
-                'nevents_w': nevents_w, 'nevents_w_err':
-                nevents_w_err, 'nentries': nentries, 'nentries_err':
-                nentries_err, 'sum_w': sumw, 'sum_w_err': sumw_err,
-                'sum_ww': sumww, 'sum_ww_err': sumww_err, 'sum_xw':
-                sumxw, 'sum_xw_err': sumxw_err, 'sum_xxw': sumxxw,
-                'sum_xxw_err': sumxxw_err}
+        sumxxw_neg = float(safdata[6][1])
+        return {'nevents': nevents, 'nevents_neg': nevents_neg,
+                'nevents_w': nevents_w, 'nevents_w_neg':
+                nevents_w_neg, 'nentries': nentries, 'nentries_neg':
+                nentries_neg, 'sum_w': sumw, 'sum_w_neg': sumw_neg,
+                'sum_ww': sumww, 'sum_ww_neg': sumww_neg, 'sum_xw':
+                sumxw, 'sum_xw_neg': sumxw_neg, 'sum_xxw': sumxxw,
+                'sum_xxw_neg': sumxxw_neg}
 
     def _parse_data(self, safdata):
         """ parse the <Data> tag of the SAF data
@@ -107,11 +107,11 @@ class SAFReader(object):
         if type(safdata) != list:
             raise ValueError("Cannot parse SAF Data")
         values = []
-        errors = []
+        values_neg = []
         for entry in safdata:
             values.append(float(entry[0]))
-            errors.append(float(entry[1]))
-        return {'values': values, 'errors': errors}
+            values_neg.append(float(entry[1]))
+        return {'values': values, 'values_neg': values_neg}
 
 
 class HistWriter(object):
@@ -123,7 +123,7 @@ class HistWriter(object):
         """
         if type(hist) != dict:
             raise ValueError("Invalid input data: hist needs to be a dict")
-        required_keys = set(['xmax', 'xmin', 'values', 'errors',
+        required_keys = set(['xmax', 'xmin', 'values', 'values_neg',
                              'nbins', 'name'])
         if required_keys & set(hist.keys()) != required_keys:
             missing = required_keys - set(hist.keys())
@@ -136,7 +136,7 @@ class HistWriter(object):
 
     def create_png(self, filename=None, figsize=None, title=None,
                    xlabel=None, ylabel=None, bar_args={}, grid=True,
-                   show_stats=True, show_yerrs=True):
+                   show_stats=True):
         """ write the histgram to a PNG file and return the file name.
 
             :param str filename: (optional) target output file name. Defaults
@@ -152,21 +152,23 @@ class HistWriter(object):
             :param bool grid: (optional) include a grid. Default: enabled
             :param bool show_stats: (optional) include a text box with
                 statistics. Default: True
-            :param bool show_yerrs: (optional) Draw error bars in y direction.
-                Default: True
 
         """
         figsize = figsize or (12, 6)
         title = title or self.hist['name']
         filename = filename or "%s.png" % (self.hist['name'])
-        yerrs = None
-        if show_yerrs:
-            yerrs = self.hist['errors'][1:-1]
 
-        width = self.value_range / self.hist['nbins']
+        width = self.value_range / self.hist['nbins'] / 2
         plt.figure(figsize=figsize)
-        plt.bar(self.xticks, self.hist['values'][1:-1], width=width,
-                yerr=yerrs, align="edge", **bar_args)
+        pos_x = [x - width/2 for x in self.xticks]
+        plt.bar(pos_x, self.hist['values'][1:-1], width=width,
+                align="edge", label="positive weighted entries",
+                **bar_args)
+        neg_x = [x + width/2 for x in self.xticks]
+        plt.bar(neg_x, self.hist['values_neg'][1:-1], width=width,
+                align="edge", label="negative weighted entries",
+                **bar_args)
+        plt.legend()
         if grid:
             plt.grid()
         if title is not None:
@@ -176,24 +178,39 @@ class HistWriter(object):
         if ylabel is not None:
             plt.ylabel(ylabel)
         if show_stats:
-            textstr = r'$n_{events}=%d$' % (self.hist['nevents']) + "\n" + \
-                      r'$\frac{\sum{w}}{n_{events}}=%e \pm %e$' % \
-                      (self.hist['nevents_w'], self.hist['nevents_w_err']) + \
-                      "\n" + "$n_{entries}=%d$\n" % (self.hist['nentries']) + \
-                      r'$\frac{\sum{w}}{n_{entries}}=%e \pm %e$' % \
-                      (self.hist['sum_w'], self.hist['sum_w_err']) + "\n" + \
-                      r'$\frac{\sum{w^{2}}}{n_{entries}}=%e \pm %e$' % \
-                      (self.hist['sum_ww'], self.hist['sum_ww_err']) + "\n" + \
-                      r'$\frac{\sum{xw}}{n_{entries}}=%e \pm %e$' % \
-                      (self.hist['sum_xw'], self.hist['sum_xw_err']) + "\n" + \
-                      r'$\frac{\sum{x^{2}w}}{n_{entries}}=%e \pm %e$' % \
-                      (self.hist['sum_xxw'], self.hist['sum_xxw_err'])
+            text = "Positive weighted entries:\n" + \
+                   r'$n_{events}=%d$' % (self.hist['nevents']) + "\n" + \
+                   r'$\sum{w}=%e$' % (self.hist['nevents_w']) + "\n" + \
+                   r'$n_{entries}=%d$' % (self.hist['nentries']) + "\n" + \
+                   r'$\sum{w}=%e$' % (self.hist['sum_w']) + "\n" + \
+                   r'$\sum{w^{2}}=%e$' % (self.hist['sum_ww']) + "\n" + \
+                   r'$\sum{xw}=%e$' % (self.hist['sum_xw']) + "\n" + \
+                   r'$\sum{x^{2}w}=%e$' % (self.hist['sum_xxw']) + "\n" + \
+                   r'$overflow=%e$' % (self.hist['values'][-1]) + "\n" + \
+                   r'$underflow=%e$' % (self.hist['values'][0])
             props = dict(boxstyle='round', facecolor='white',
                          alpha=0.5)
-            plt.gca().text(0.65, 0.99, textstr,
+            plt.gca().text(1.05, 1, text,
                            transform=plt.gca().transAxes, fontsize=10,
                            verticalalignment='top',
                            horizontalalignment='left', bbox=props)
+            text = "Negative weighted entries:\n" + \
+                   r'$n_{events}=%d$' % (self.hist['nevents_neg']) + "\n" + \
+                   r'$\sum{w}=%e$' % (self.hist['nevents_w_neg']) + "\n" + \
+                   r'$n_{entries}=%d$' % (self.hist['nentries_neg']) + "\n" + \
+                   r'$\sum{w}=%e$' % (self.hist['sum_w_neg']) + "\n" + \
+                   r'$\sum{w^{2}}=%e$' % (self.hist['sum_ww_neg']) + "\n" + \
+                   r'$\sum{xw}=%e$' % (self.hist['sum_xw_neg']) + "\n" + \
+                   r'$\sum{x^{2}w}=%e$' % (self.hist['sum_xxw_neg']) + "\n" + \
+                   r'$overflow=%e$' % (self.hist['values_neg'][-1]) + "\n" + \
+                   r'$underflow=%e$' % (self.hist['values_neg'][0])
+            props = dict(boxstyle='round', facecolor='white',
+                         alpha=0.5)
+            plt.gca().text(1.05, 0.5, text,
+                           transform=plt.gca().transAxes, fontsize=10,
+                           verticalalignment='top',
+                           horizontalalignment='left', bbox=props)
+            plt.subplots_adjust(right=0.75)
 
         plt.savefig(filename)
         return filename
