@@ -15,3 +15,6 @@ optional arguments:
 ```
 
 PNGs are written into the current working directory. The file name is based on the name in the `<Description>` tag in the SAF file.
+
+Example output:
+![example_histos.ptj1.png](https://cdn.steemitimages.com/DQmT4dGoi3eesgPddvvwysYmCcPqBE14NR1g4M7e4FiW9Fz/example_histos.ptj1.png)
