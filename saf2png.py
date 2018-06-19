@@ -66,9 +66,9 @@ class SAFReader(object):
         nbins = int(safdata[1][0])
         xmin = float(safdata[1][1])
         xmax = float(safdata[1][2])
-        region = safdata[2][0]  # TODO: can there be more than one region?
+        regions = [r[0] for r in safdata[2:]]
         return {'name': name, 'nbins': nbins, 'xmin': xmin, 'xmax':
-                xmax, 'region': region}
+                xmax, 'regions': regions}
 
     def _parse_statistics(self, safdata):
         """ parse the <Statistics> tag of the SAF data
