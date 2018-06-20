@@ -141,6 +141,19 @@ class HistWriter(object):
         self.bar = self.ax.bar(self.xticks, self.hist['values'][1:-1],
                                width=width, align="edge", **bar_args)
 
+    def _parse_input(self, userinput, default):
+        """ parse user input for title or label.
+
+            :param str userinput: user input string
+            :param any default: default value to use if ``userinput`` is unset
+        """
+        if userinput is None:
+            return default
+        if userinput == '':  # empty string
+            return None
+        # wrapping as r'%s' enables to use math-mode strings like
+        # '$\sum{x_{i}}$' as title/label
+        return r'%s' % (userinput)
 
     def create_png(self, filename=None, title=None, xlabel=None,
                    ylabel=None, grid=True,
@@ -158,15 +171,17 @@ class HistWriter(object):
                 statistics. Default: True
 
         """
-        title = title or self.hist['name']
+        title = self._parse_input(title, self.hist['name'])
+        xlabel = self._parse_input(xlabel, None)
+        ylabel = self._parse_input(ylabel, None)
         self.filename = filename or "%s.png" % (self.hist['name'])
         if grid:
             self.ax.grid()
-        if title is not None:
+        if title:
             self.ax.set_title(title)
-        if xlabel is not None:
+        if xlabel:
             self.ax.set_xlabel(xlabel)
-        if ylabel is not None:
+        if ylabel:
             self.ax.set_ylabel(ylabel)
         if show_stats:
             props = dict(boxstyle='round', facecolor='white', alpha=0.5)
@@ -208,10 +223,24 @@ class HistWriter(object):
 if __name__ == "__main__":
     import argparse
     import os
+
+    # Python2 by default evaluates the result from `input()`, Python3 takes it as a
+    # string. Enforce this also for Python2.
+    try:
+        input = raw_input
+    except NameError:
+        pass
+
     parser = argparse.ArgumentParser()
     helptext = 'One or more SAF files. Separate multiple files with spaces'
     parser.add_argument('-f', '--files', type=str, nargs="+",
                         help=helptext, required=True)
+    helptext = "Interactive mode: ask for titles and labels"
+    parser.add_argument('-i', '--interactive', action="store_true",
+                        default=False, help=helptext)
+    helptext = "Show text boxes with statistics information"
+    parser.add_argument('-s', '--stats', action="store_true",
+                        default=False, help=helptext)
     args = parser.parse_args()
 
     # iterate over all SAF files provided as command line arguments
@@ -225,10 +254,16 @@ if __name__ == "__main__":
             outfile = "%s.%s.png" % (basename, hist['name'])
             writer = HistWriter(hist)
             # write histogram to file with default settings
-            writer.create_png(filename=outfile)
+            title = None
+            xlabel = None
+            ylabel = None
+            if args.interactive:
+                id = "%s.%s" % (saffile, hist['name'])
+                title = input("Histogram title for %s: " % (id))
+                xlabel = input("X-axis label for %s: " % (id))
+                ylabel = input("Y-axis label for %s: " % (id))
 
-            # alternatively: customize the histogram
-            # writer.ax.set_title("my title")
-            # writer.ax.set_ylim([0,1])
-            # writer.fig.savefig(outfile)
+            writer.create_png(filename=outfile, title=title,
+                              xlabel=xlabel, ylabel=ylabel,
+                              show_stats=args.stats)
             print("Created %s" % (outfile))
