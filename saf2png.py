@@ -204,16 +204,16 @@ class HistWriter(object):
                          horizontalalignment='left', bbox=props)
             text = "Negative weighted entries:\n" + \
                    r'$n_{evt}=%d$' % (self.hist['nevents_neg']) + "\n" + \
-                   r'$\sum{w_{evt}}=%e$' % (self.hist['nevents_w_neg']) + "\n" + \
-                   r'$n_{entr}=%d$' % (self.hist['nentries_neg']) + "\n" + \
-                   r'$\sum{w}=%e$' % (self.hist['sum_w_neg']) + "\n" + \
+                   r'$\sum{w_{evt}}=%e$' % (self.hist['nevents_w_neg']) + \
+                   "\n" + r'$n_{entr}=%d$' % (self.hist['nentries_neg']) + \
+                   "\n" + r'$\sum{w}=%e$' % (self.hist['sum_w_neg']) + "\n" + \
                    r'$\sum{w^{2}}=%e$' % (self.hist['sum_ww_neg']) + "\n" + \
                    r'$\sum{xw}=%e$' % (self.hist['sum_xw_neg']) + "\n" + \
                    r'$\sum{x^{2}w}=%e$' % (self.hist['sum_xxw_neg'])
             self.ax.text(1.05, 0.4, text,
-                           transform=plt.gca().transAxes, fontsize=10,
-                           verticalalignment='top',
-                           horizontalalignment='left', bbox=props)
+                         transform=plt.gca().transAxes, fontsize=10,
+                         verticalalignment='top',
+                         horizontalalignment='left', bbox=props)
             self.fig.subplots_adjust(right=0.75)
 
         self.fig.savefig(filename)
@@ -224,8 +224,8 @@ if __name__ == "__main__":
     import argparse
     import os
 
-    # Python2 by default evaluates the result from `input()`, Python3 takes it as a
-    # string. Enforce this also for Python2.
+    # Python2 by default evaluates the result from `input()`, Python3
+    # takes it as a string. Enforce this also for Python2.
     try:
         input = raw_input
     except NameError:
